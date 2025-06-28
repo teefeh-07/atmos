@@ -4,20 +4,23 @@ A repository for Stacks blockchain smart contract development using Clarity and 
 
 ## Projects
 
-### 🚀 [Hello World Contract](./clarity-project/)
+### 🌍 [StratoSense - Atmospheric Data Registry](./clarity-project/)
 
-A comprehensive Clarity smart contract demonstrating:
-- Basic smart contract functionality
-- State management and data storage
-- User interaction and access control
-- Comprehensive testing with Clarinet SDK
-- Error handling and input validation
+A comprehensive Clarity smart contract for atmospheric data management:
+- Dataset registration with comprehensive metadata
+- Geographic coordinate validation (latitude/longitude)
+- Altitude range validation and management
+- Ownership transfer and access control
+- Metadata freezing and update mechanisms
+- IPFS integration for data storage
 
 **Features:**
-- Customizable greeting messages
-- User interaction tracking
-- Owner-only administrative functions
-- Full test coverage (11/11 tests passing)
+- Register atmospheric datasets with location and altitude data
+- Transfer dataset ownership between users
+- Freeze metadata to prevent unauthorized changes
+- Query datasets by owner and public availability
+- Comprehensive input validation and error handling
+- Full test coverage (13/13 tests passing)
 
 ## Getting Started
 
@@ -52,9 +55,11 @@ A comprehensive Clarity smart contract demonstrating:
 
 ```
 atmos/
-├── clarity-project/          # Hello World smart contract project
+├── clarity-project/          # StratoSense atmospheric data registry
 │   ├── contracts/           # Clarity smart contracts
-│   ├── tests/              # Unit tests
+│   │   └── atmos.clar      # Main data registry contract
+│   ├── tests/              # Comprehensive unit tests
+│   │   └── atmos.test.ts   # Test suite (13 tests)
 │   ├── settings/           # Network configurations
 │   └── README.md           # Project-specific documentation
 └── README.md               # This file
