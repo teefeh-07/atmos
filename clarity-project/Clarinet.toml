@@ -5,8 +5,8 @@ authors = []
 telemetry = false
 cache_dir = './.cache'
 requirements = []
-[contracts.hello-world]
-path = 'contracts/hello-world.clar'
+[contracts.atmos]
+path = 'contracts/atmos.clar'
 clarity_version = 3
 epoch = 3.1
 [repl.analysis]

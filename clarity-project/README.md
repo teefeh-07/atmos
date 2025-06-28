@@ -1,35 +1,42 @@
-# Hello World Clarity Smart Contract
+# StratoSense - Atmospheric Data Registry
 
-A simple Clarity smart contract demonstrating basic functionality on the Stacks blockchain.
+A Clarity smart contract for registering and managing atmospheric datasets on the Stacks blockchain.
 
 ## Overview
 
-This project contains a "Hello World" smart contract built with Clarinet that showcases:
+This project contains the **StratoSense** data registry contract built with Clarinet that provides:
 
-- **Greeting Management**: Set and retrieve custom greetings
-- **User Interaction**: Say hello with personalized names
-- **State Tracking**: Count total greetings and per-user interactions
-- **Access Control**: Owner-only functions for administrative tasks
-- **Input Validation**: Proper error handling for invalid inputs
+- **Dataset Registration**: Register atmospheric datasets with comprehensive metadata
+- **Ownership Management**: Transfer dataset ownership between principals
+- **Access Control**: Owner-only functions for dataset management
+- **Metadata Management**: Update and freeze dataset metadata
+- **Data Discovery**: Query datasets by owner and check public availability
+- **Input Validation**: Comprehensive validation for geographic coordinates and altitude ranges
 
 ## Contract Features
 
 ### Public Functions
 
-- `say-hello(name)`: Say hello to someone and increment counters
-- `set-greeting(new-greeting)`: Set a custom greeting (owner only)
+- `register-dataset(...)`: Register a new atmospheric dataset with metadata
+- `update-dataset-metadata(...)`: Update dataset metadata (owner only, if not frozen)
+- `freeze-dataset-metadata(dataset-id)`: Permanently freeze dataset metadata (owner only)
+- `transfer-dataset(dataset-id, new-owner)`: Transfer dataset ownership
+- `set-contract-admin(new-admin)`: Set contract administrator (admin only)
 
 ### Read-Only Functions
 
-- `get-greeting()`: Get the current greeting message
-- `get-greeting-count()`: Get total number of greetings
-- `get-user-greeting-count(user)`: Get greeting count for a specific user
-- `get-contract-owner()`: Get the contract owner's principal
+- `get-dataset(dataset-id)`: Get complete dataset information
+- `get-datasets-by-owner(owner)`: Get all dataset IDs owned by a principal
+- `get-dataset-count()`: Get total number of registered datasets
+- `is-dataset-public(dataset-id)`: Check if a dataset is publicly accessible
+- `get-contract-admin()`: Get the contract administrator
 
 ### Error Codes
 
-- `u100`: Unauthorized (non-owner trying to set greeting)
-- `u101`: Invalid name (empty string provided)
+- `u401`: Not authorized (insufficient permissions)
+- `u404`: Dataset not found
+- `u400`: Invalid parameters (coordinates, altitude, etc.)
+- `u403`: Metadata frozen (cannot be modified)
 
 ## Getting Started
 
@@ -71,21 +78,37 @@ clarinet console
 
 Example console commands:
 ```clarity
-(contract-call? .hello-world say-hello "Alice")
-(contract-call? .hello-world get-greeting)
-(contract-call? .hello-world get-greeting-count)
+;; Register a new dataset
+(contract-call? .atmos register-dataset
+  u"Temperature Data"
+  u"Atmospheric temperature measurements"
+  u"temperature"
+  u1640995200
+  u1000
+  u5000
+  40000000
+  -74000000
+  "QmTestHash123"
+  true)
+
+;; Get dataset information
+(contract-call? .atmos get-dataset u1)
+
+;; Check dataset count
+(contract-call? .atmos get-dataset-count)
 ```
 
 ## Testing
 
 The project includes comprehensive unit tests covering:
 
-- ✅ Default contract state
-- ✅ Greeting functionality
-- ✅ Counter tracking
-- ✅ Access control
-- ✅ Input validation
-- ✅ Error handling
+- ✅ Dataset registration and validation
+- ✅ Metadata management and freezing
+- ✅ Ownership and access control
+- ✅ Geographic coordinate validation
+- ✅ Altitude range validation
+- ✅ Error handling and edge cases
+- ✅ Data retrieval and querying
 
 Run tests with:
 ```bash
@@ -97,12 +120,12 @@ npm test
 ```
 clarity-project/
 ├── contracts/
-│   └── hello-world.clar      # Main smart contract
+│   └── atmos.clar           # StratoSense data registry contract
 ├── tests/
-│   └── hello-world.test.ts   # Unit tests
-├── settings/                 # Network configurations
-├── Clarinet.toml            # Project configuration
-└── package.json             # Dependencies and scripts
+│   └── atmos.test.ts        # Comprehensive unit tests
+├── settings/                # Network configurations
+├── Clarinet.toml           # Project configuration
+└── package.json            # Dependencies and scripts
 ```
 
 ## Deployment
