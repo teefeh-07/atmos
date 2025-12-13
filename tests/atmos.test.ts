@@ -34,7 +34,7 @@ describe("atmos contract tests", () => {
       Cl.stringAscii("QmTestHash123"),
       Cl.bool(true) // is-public
     ], wallet1);
-    
+
     expect(result).toBeOk(Cl.uint(1));
   });
 
@@ -84,7 +84,8 @@ describe("atmos contract tests", () => {
       "ipfs-hash": Cl.stringAscii("QmTestHash789"),
       "is-public": Cl.bool(true),
       "metadata-frozen": Cl.bool(false),
-      "created-at": Cl.uint(0)
+      "created-at": Cl.uint(0),
+      status: Cl.stringAscii("active")
     }));
   });
 
