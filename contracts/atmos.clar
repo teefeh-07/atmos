@@ -6,6 +6,7 @@
 (define-constant ERR-DATASET-NOT-FOUND (err u404))
 (define-constant ERR-INVALID-PARAMS (err u400))
 (define-constant ERR-METADATA-FROZEN (err u403))
+(define-constant ERR-DATASET-LIMIT-REACHED (err u405))
 (define-constant ERR-CONTRACT-PAUSED (err u503))
 
 ;; Data Vars
@@ -30,7 +31,7 @@
     is-public: bool,
     metadata-frozen: bool,
     created-at: uint,
-    status: (string-ascii 20) ;; "active", "deprecated"
+    status: (string-ascii 20), ;; "active", "deprecated"
   }
 )
 
@@ -58,7 +59,9 @@
 )
 
 (define-read-only (get-datasets-by-owner (owner principal))
-  (default-to (list) (get dataset-ids (map-get? datasets-by-owner { owner: owner })))
+  (default-to (list)
+    (get dataset-ids (map-get? datasets-by-owner { owner: owner }))
+  )
 )
 
 (define-read-only (get-dataset-count)
@@ -83,59 +86,63 @@
 ;; --- Public Functions ---
 
 ;; Register a new dataset
-(define-public (register-dataset 
-  (name (string-utf8 100))
-  (description (string-utf8 500))
-  (data-type (string-utf8 50))
-  (collection-date uint)
-  (altitude-min uint)
-  (altitude-max uint)
-  (latitude int)
-  (longitude int)
-  (ipfs-hash (string-ascii 100))
-  (is-public bool))
-  
-  (let (
-    (dataset-id (+ (var-get dataset-counter) u1))
-    (owner-principal tx-sender)
-    (current-time block-height) ;; Use block-height as proxy for time if stacks-block-height not avail
+(define-public (register-dataset
+    (name (string-utf8 100))
+    (description (string-utf8 500))
+    (data-type (string-utf8 50))
+    (collection-date uint)
+    (altitude-min uint)
+    (altitude-max uint)
+    (latitude int)
+    (longitude int)
+    (ipfs-hash (string-ascii 100))
+    (is-public bool)
   )
+  (let (
+      (dataset-id (+ (var-get dataset-counter) u1))
+      (owner-principal tx-sender)
+      (current-time stacks-block-height) ;; Use stacks-block-height as proxy for time
+    )
     (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (>= altitude-min u0) ERR-INVALID-PARAMS)
     (asserts! (>= altitude-max altitude-min) ERR-INVALID-PARAMS)
-    (asserts! (and (>= latitude (* -90 1000000)) (<= latitude (* 90 1000000))) ERR-INVALID-PARAMS)
-    (asserts! (and (>= longitude (* -180 1000000)) (<= longitude (* 180 1000000))) ERR-INVALID-PARAMS)
-    
-    (map-set datasets
-      { dataset-id: dataset-id }
-      {
-        owner: owner-principal,
-        name: name,
-        description: description,
-        data-type: data-type,
-        collection-date: collection-date,
-        altitude-min: altitude-min,
-        altitude-max: altitude-max,
-        latitude: latitude,
-        longitude: longitude,
-        ipfs-hash: ipfs-hash,
-        is-public: is-public,
-        metadata-frozen: false,
-        created-at: current-time,
-        status: "active"
-      }
+    (asserts! (and (>= latitude (* -90 1000000)) (<= latitude (* 90 1000000)))
+      ERR-INVALID-PARAMS
     )
-    
+    (asserts!
+      (and (>= longitude (* -180 1000000)) (<= longitude (* 180 1000000)))
+      ERR-INVALID-PARAMS
+    )
+
+    (map-set datasets { dataset-id: dataset-id } {
+      owner: owner-principal,
+      name: name,
+      description: description,
+      data-type: data-type,
+      collection-date: collection-date,
+      altitude-min: altitude-min,
+      altitude-max: altitude-max,
+      latitude: latitude,
+      longitude: longitude,
+      ipfs-hash: ipfs-hash,
+      is-public: is-public,
+      metadata-frozen: false,
+      created-at: current-time,
+      status: "active",
+    })
+
     (let (
-      (current-list (default-to { dataset-ids: (list) } (map-get? datasets-by-owner { owner: owner-principal })))
-      (updated-list (unwrap-panic (as-max-len? (append (get dataset-ids current-list) dataset-id) u1000)))
-    )
-      (map-set datasets-by-owner
-        { owner: owner-principal }
-        { dataset-ids: updated-list }
+        (current-list (default-to { dataset-ids: (list) }
+          (map-get? datasets-by-owner { owner: owner-principal })
+        ))
+        (updated-list (unwrap!
+          (as-max-len? (append (get dataset-ids current-list) dataset-id) u1000)
+          ERR-DATASET-LIMIT-REACHED
+        ))
       )
+      (map-set datasets-by-owner { owner: owner-principal } { dataset-ids: updated-list })
     )
-    
+
     (var-set dataset-counter dataset-id)
     (ok dataset-id)
   )
@@ -143,23 +150,23 @@
 
 ;; Update dataset metadata
 (define-public (update-dataset-metadata
-  (dataset-id uint)
-  (name (string-utf8 100))
-  (description (string-utf8 500))
-  (data-type (string-utf8 50))
-  (is-public bool))
+    (dataset-id uint)
+    (name (string-utf8 100))
+    (description (string-utf8 500))
+    (data-type (string-utf8 50))
+    (is-public bool)
+  )
   (let ((dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND)))
     (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
     (asserts! (not (get metadata-frozen dataset)) ERR-METADATA-FROZEN)
-    
-    (map-set datasets
-      { dataset-id: dataset-id }
+
+    (map-set datasets { dataset-id: dataset-id }
       (merge dataset {
         name: name,
         description: description,
         data-type: data-type,
-        is-public: is-public
+        is-public: is-public,
       })
     )
     (ok true)
@@ -171,8 +178,7 @@
   (let ((dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND)))
     (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
-    (map-set datasets
-      { dataset-id: dataset-id }
+    (map-set datasets { dataset-id: dataset-id }
       (merge dataset { metadata-frozen: true })
     )
     (ok true)
@@ -180,15 +186,15 @@
 )
 
 ;; Transfer dataset
-(define-public (transfer-dataset (dataset-id uint) (new-owner principal))
-  (let (
-    (dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND))
+(define-public (transfer-dataset
+    (dataset-id uint)
+    (new-owner principal)
   )
+  (let ((dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND)))
     (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
-    
-    (map-set datasets
-      { dataset-id: dataset-id }
+
+    (map-set datasets { dataset-id: dataset-id }
       (merge dataset { owner: new-owner })
     )
     (ok true)
