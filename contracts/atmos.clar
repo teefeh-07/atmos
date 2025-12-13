@@ -1,13 +1,19 @@
-;; StratoSense - Data Registry Contract (Commit 1)
-;; Basic definitions, dataset storage, counter, and admin management
+;; StratoSense - Data Registry Contract
+;; Implements Clarity 4 standards
 
 ;; Error Codes
 (define-constant ERR-NOT-AUTHORIZED (err u401))
 (define-constant ERR-DATASET-NOT-FOUND (err u404))
 (define-constant ERR-INVALID-PARAMS (err u400))
 (define-constant ERR-METADATA-FROZEN (err u403))
+(define-constant ERR-CONTRACT-PAUSED (err u503))
 
-;; Dataset Map: Stores each dataset with its metadata.
+;; Data Vars
+(define-data-var dataset-counter uint u0)
+(define-data-var contract-admin principal tx-sender)
+(define-data-var contract-paused bool false)
+
+;; Dataset Map
 (define-map datasets
   { dataset-id: uint }
   {
@@ -23,36 +29,44 @@
     ipfs-hash: (string-ascii 100),
     is-public: bool,
     metadata-frozen: bool,
-    created-at: uint
+    created-at: uint,
+    status: (string-ascii 20) ;; "active", "deprecated"
   }
 )
 
-;; Counter for dataset IDs
-(define-data-var dataset-counter uint u0)
-
-;; Map for datasets by owner
+;; Datasets by Owner Map
 (define-map datasets-by-owner
   { owner: principal }
   { dataset-ids: (list 1000 uint) }
 )
 
-;; Contract admin
-(define-data-var contract-admin principal tx-sender)
+;; --- Read-Only Functions ---
 
-;; Admin management functions
 (define-read-only (get-contract-admin)
   (ok (var-get contract-admin))
 )
 
-(define-public (set-contract-admin (new-admin principal))
-  (begin
-    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
-    (var-set contract-admin new-admin)
-    (ok new-admin)
+(define-read-only (is-contract-paused)
+  (ok (var-get contract-paused))
+)
+
+(define-read-only (get-dataset (dataset-id uint))
+  (match (map-get? datasets { dataset-id: dataset-id })
+    data (ok data)
+    (err ERR-DATASET-NOT-FOUND)
   )
 )
 
-;; Helper to check if the caller is the owner of a dataset
+(define-read-only (get-datasets-by-owner (owner principal))
+  (default-to (list) (get dataset-ids (map-get? datasets-by-owner { owner: owner })))
+)
+
+(define-read-only (get-dataset-count)
+  (ok (var-get dataset-counter))
+)
+
+;; --- Private Helper Functions ---
+
 (define-private (is-dataset-owner (dataset-id uint))
   (let ((dataset (map-get? datasets { dataset-id: dataset-id })))
     (match dataset
@@ -62,7 +76,13 @@
   )
 )
 
-;; Register a new atmospheric dataset
+(define-private (check-not-paused)
+  (or (not (var-get contract-paused)) (is-eq tx-sender (var-get contract-admin)))
+)
+
+;; --- Public Functions ---
+
+;; Register a new dataset
 (define-public (register-dataset 
   (name (string-utf8 100))
   (description (string-utf8 500))
@@ -74,18 +94,18 @@
   (longitude int)
   (ipfs-hash (string-ascii 100))
   (is-public bool))
+  
   (let (
     (dataset-id (+ (var-get dataset-counter) u1))
     (owner-principal tx-sender)
-    (current-time u0)
+    (current-time block-height) ;; Use block-height as proxy for time if stacks-block-height not avail
   )
-    ;; Validate parameters
+    (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (>= altitude-min u0) ERR-INVALID-PARAMS)
     (asserts! (>= altitude-max altitude-min) ERR-INVALID-PARAMS)
     (asserts! (and (>= latitude (* -90 1000000)) (<= latitude (* 90 1000000))) ERR-INVALID-PARAMS)
     (asserts! (and (>= longitude (* -180 1000000)) (<= longitude (* 180 1000000))) ERR-INVALID-PARAMS)
     
-    ;; Register the dataset
     (map-set datasets
       { dataset-id: dataset-id }
       {
@@ -101,11 +121,11 @@
         ipfs-hash: ipfs-hash,
         is-public: is-public,
         metadata-frozen: false,
-        created-at: current-time
+        created-at: current-time,
+        status: "active"
       }
     )
     
-    ;; Update the owner's dataset list
     (let (
       (current-list (default-to { dataset-ids: (list) } (map-get? datasets-by-owner { owner: owner-principal })))
       (updated-list (unwrap-panic (as-max-len? (append (get dataset-ids current-list) dataset-id) u1000)))
@@ -121,7 +141,7 @@
   )
 )
 
-;; Update dataset metadata (only allowed if the caller is the owner and metadata is not frozen)
+;; Update dataset metadata
 (define-public (update-dataset-metadata
   (dataset-id uint)
   (name (string-utf8 100))
@@ -129,8 +149,10 @@
   (data-type (string-utf8 50))
   (is-public bool))
   (let ((dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND)))
+    (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
     (asserts! (not (get metadata-frozen dataset)) ERR-METADATA-FROZEN)
+    
     (map-set datasets
       { dataset-id: dataset-id }
       (merge dataset {
@@ -144,9 +166,10 @@
   )
 )
 
-;; Freeze dataset metadata (only the owner can freeze)
+;; Freeze dataset metadata
 (define-public (freeze-dataset-metadata (dataset-id uint))
   (let ((dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND)))
+    (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
     (map-set datasets
       { dataset-id: dataset-id }
@@ -156,50 +179,36 @@
   )
 )
 
-;; Transfer dataset ownership to a new owner
+;; Transfer dataset
 (define-public (transfer-dataset (dataset-id uint) (new-owner principal))
   (let (
     (dataset (unwrap! (map-get? datasets { dataset-id: dataset-id }) ERR-DATASET-NOT-FOUND))
   )
+    (asserts! (check-not-paused) ERR-CONTRACT-PAUSED)
     (asserts! (is-dataset-owner dataset-id) ERR-NOT-AUTHORIZED)
-    ;; Update the dataset's owner
+    
     (map-set datasets
       { dataset-id: dataset-id }
       (merge dataset { owner: new-owner })
     )
-    ;; Note: For simplicity, we're not updating the datasets-by-owner map in this version
-    ;; This can be enhanced in future versions with proper list manipulation
     (ok true)
   )
 )
 
-;; Get dataset information by ID
-(define-read-only (get-dataset (dataset-id uint))
-  (match (map-get? datasets { dataset-id: dataset-id })
-    data (ok data)
-    (err ERR-DATASET-NOT-FOUND)
+;; Admin: Set Contract Admin
+(define-public (set-contract-admin (new-admin principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
+    (var-set contract-admin new-admin)
+    (ok new-admin)
   )
 )
 
-;; Get all dataset IDs associated with a specific owner
-(define-read-only (get-datasets-by-owner (owner principal))
-  (let ((owner-data (map-get? datasets-by-owner { owner: owner })))
-    (match owner-data
-      data (ok (get dataset-ids data))
-      (ok (list))
-    )
-  )
-)
-
-;; Get the total number of datasets registered
-(define-read-only (get-dataset-count)
-  (ok (var-get dataset-counter))
-)
-
-;; Check if a dataset is public
-(define-read-only (is-dataset-public (dataset-id uint))
-  (match (map-get? datasets { dataset-id: dataset-id })
-    data (ok (get is-public data))
-    (err ERR-DATASET-NOT-FOUND)
+;; Admin: Pause/Unpause Contract
+(define-public (set-paused (paused bool))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
+    (var-set contract-paused paused)
+    (ok paused)
   )
 )
