@@ -1,81 +1,54 @@
-# Atmos - Stacks Blockchain Development
+# Atmos - Decentralized Atmospheric Data Registry
 
-A repository for Stacks blockchain smart contract development using Clarity and Clarinet.
+Atmos is a professional-grade decentralized application (dApp) built on the Stacks blockchain, designed to store, verify, and manage atmospheric and climate data. It leverages Clarity 4 smart contracts for robust and secure data registry and features a modern, high-performance web interface.
 
-## Projects
+## Features
 
-### 🌍 [StratoSense - Atmospheric Data Registry](./clarity-project/)
+-   **Clarity 4 Smart Contract**: Utilizes the latest Clarity features for efficient data management.
+-   **Decentralized Registry**: Immutable storage of dataset metadata.
+-   **Professional UI**: A sleek, dark-moded React application powered by Vite.
+-   **Administrative Control**: Capabilities for pausing contracts and managing dataset status.
 
-A comprehensive Clarity smart contract for atmospheric data management:
-- Dataset registration with comprehensive metadata
-- Geographic coordinate validation (latitude/longitude)
-- Altitude range validation and management
-- Ownership transfer and access control
-- Metadata freezing and update mechanisms
-- IPFS integration for data storage
+## Tech Stack
 
-**Features:**
-- Register atmospheric datasets with location and altitude data
-- Transfer dataset ownership between users
-- Freeze metadata to prevent unauthorized changes
-- Query datasets by owner and public availability
-- Comprehensive input validation and error handling
-- Full test coverage (13/13 tests passing)
+-   **Smart Contracts**: Clarity (v4), Clarinet SDK
+-   **Frontend**: React, Vite, TypeScript, TailwindCSS (via custom CSS variables)
+-   **Testing**: Vitest, Clarinet SDK
+
+## Prerequisites
+
+-   Node.js (v18+)
+-   Clarinet (latest version supporting Epoch 3.0)
 
 ## Getting Started
 
-1. **Install Clarinet** (Stacks development environment):
-   ```bash
-   # Linux
-   wget -nv https://github.com/hirosystems/clarinet/releases/download/v3.1.0/clarinet-linux-x64-glibc.tar.gz -O clarinet-linux-x64.tar.gz
-   tar -xf clarinet-linux-x64.tar.gz
-   chmod +x ./clarinet
-   sudo mv ./clarinet /usr/local/bin
-   ```
+1.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-2. **Navigate to a project**:
-   ```bash
-   cd clarity-project
-   ```
+2.  **Run Tests**
+    ```bash
+    npm run test
+    ```
 
-3. **Install dependencies and run tests**:
-   ```bash
-   npm install
-   npm test
-   ```
+3.  **Start Web Interface**
+    ```bash
+    npm run dev
+    ```
 
-## Development Tools
+4.  **Deploy Contracts**
+    ```bash
+    clarinet integrate
+    ```
 
-- **Clarinet**: Stacks smart contract development environment
-- **Clarity**: Smart contract programming language for Stacks
-- **Vitest**: Testing framework for contract unit tests
-- **TypeScript**: Type-safe testing and development
+## Project Structure
 
-## Repository Structure
+-   `/contracts`: Clarity smart contracts (`atmos.clar`)
+-   `/src`: React frontend source code
+-   `/tests`: Vitest unit tests
+-   `Clarinet.toml`: Network and contract configuration
 
-```
-atmos/
-├── clarity-project/          # StratoSense atmospheric data registry
-│   ├── contracts/           # Clarity smart contracts
-│   │   └── atmos.clar      # Main data registry contract
-│   ├── tests/              # Comprehensive unit tests
-│   │   └── atmos.test.ts   # Test suite (13 tests)
-│   ├── settings/           # Network configurations
-│   └── README.md           # Project-specific documentation
-└── README.md               # This file
-```
+## License
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Develop your smart contracts
-4. Add comprehensive tests
-5. Submit a pull request
-
-## Resources
-
-- [Stacks Documentation](https://docs.stacks.co/)
-- [Clarity Language Reference](https://docs.stacks.co/clarity/)
-- [Clarinet Documentation](https://docs.hiro.so/stacks/clarinet)
-- [Stacks Blockchain](https://www.stacks.co/)
+MIT
