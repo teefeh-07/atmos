@@ -1,6 +1,7 @@
 import React from 'react';
 import ConnectWallet from './components/ConnectWallet';
 import RegisterDataset from './components/RegisterDataset';
+import DatasetList from './components/DatasetList';
 
 function App() {
     return (
@@ -11,6 +12,7 @@ function App() {
             </header>
             <p>Welcome to the Atmos decentralized data registry.</p>
             <RegisterDataset />
+            <DatasetList />
         </div>
     );
 }
