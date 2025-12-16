@@ -10,10 +10,17 @@ export default defineConfig({
       threads: {
         singleThread: true,
       },
-      forks: {
-        singleFork: true,
+    },
+    environmentOptions: {
+      clarinet: {
+        ...getClarinetVitestsArgv(),
       },
     },
     setupFiles: [vitestSetupFilePath],
+    environmentOptions: {
+      clarinet: {
+        ...getClarinetVitestsArgv(),
+      },
+    },
   },
 });
