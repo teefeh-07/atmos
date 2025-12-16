@@ -8,9 +8,29 @@ const ConnectWallet = () => {
     const [userData, setUserData] = useState(null);
 
     const handleConnect = () => {
-        // logic will be implemented in next branch
-        console.log("Connect clicked");
+        showConnect({
+            appDetails: {
+                name: 'Atmos Data Registry',
+                icon: window.location.origin + '/vite.svg',
+            },
+            redirectTo: '/',
+            onFinish: () => {
+                const userData = userSession.loadUserData();
+                setUserData(userData);
+            },
+            userSession: userSession,
+        });
     };
+
+    React.useEffect(() => {
+        if (userSession.isSignInPending()) {
+            userSession.handlePendingSignIn().then((userData) => {
+                setUserData(userData);
+            });
+        } else if (userSession.isUserSignedIn()) {
+            setUserData(userSession.loadUserData());
+        }
+    }, []);
 
     if (userData) {
         return (
