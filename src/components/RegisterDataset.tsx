@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { openContractCall } from '@stacks/connect';
+import { openContractCall, FinishedTxData } from '@stacks/connect';
 import { stringUtf8CV, uintCV, intCV, boolCV, stringAsciiCV } from '@stacks/transactions';
 import { userSession } from './ConnectWallet';
 
@@ -42,7 +42,7 @@ const RegisterDataset = () => {
             contractName,
             functionName: 'register-dataset',
             functionArgs,
-            onFinish: data => {
+            onFinish: (data: FinishedTxData) => {
                 console.log('Transaction ID:', data.txId);
                 alert(`Transaction broadcasted: ${data.txId}`);
             },
