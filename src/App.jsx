@@ -1,4 +1,5 @@
 import React from 'react';
+import './App.css';
 import ConnectWallet from './components/ConnectWallet';
 import RegisterDataset from './components/RegisterDataset';
 import DatasetList from './components/DatasetList';
