@@ -9,10 +9,16 @@ const RegisterDataset = () => {
         setCoords(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // Logic in next branch
+        console.log("Registering...");
+    };
+
     return (
         <div className="register-dataset">
             <h2>Register Dataset</h2>
-            <form>
+            <form onSubmit={handleSubmit}>
                 <div className="form-group">
                     <label>Name:</label>
                     <input
@@ -47,6 +53,7 @@ const RegisterDataset = () => {
                     <input type="number" value={coords.long} onChange={(e) => handleCoordChange('long', parseInt(e.target.value))} />
                 </div>
                 {/* Form fields */}
+                <button type="submit">Register</button>
             </form>
         </div>
     );
