@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { openContractCall } from '@stacks/connect';
+import { uintCV, intCV, stringUtf8CV, stringAsciiCV, boolCV, PostConditionMode } from '@stacks/transactions';
 
 const RegisterDataset = () => {
     const [name, setName] = useState('');
@@ -11,8 +13,33 @@ const RegisterDataset = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Logic in next branch
-        console.log("Registering...");
+
+        const functionArgs = [
+            stringUtf8CV(name),
+            stringUtf8CV(description),
+            stringUtf8CV("sensor-data"), // hardcoded for now
+            uintCV(1625000000), // dummy date
+            uintCV(coords.altMin),
+            uintCV(coords.altMax),
+            intCV(coords.lat),
+            intCV(coords.long),
+            stringAsciiCV("QmHash..."), // dummy hash
+            boolCV(true)
+        ];
+
+        const options = {
+            contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+            contractName: 'atmos',
+            functionName: 'register-dataset',
+            functionArgs,
+            network: 'devnet', // or testnet
+            postConditionMode: PostConditionMode.Allow,
+            onFinish: (data) => {
+                console.log('Transaction ID:', data.txId);
+            },
+        };
+
+        openContractCall(options);
     };
 
     return (
